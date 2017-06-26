@@ -56,11 +56,12 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
     KINWebBrowserViewController *webBrowserViewController = [KINWebBrowserViewController webBrowserWithConfiguration:nil];
 
 	NSBundle *bundle = [NSBundle bundleForClass:[self class]];
-	UIBarButtonItem* refreshButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:webBrowserViewController action:@selector(refreshButtonPressed:)];
+//	UIBarButtonItem* refreshButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:webBrowserViewController action:@selector(refreshButtonPressed:)];
+	UIBarButtonItem* closeButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemStop target:webBrowserViewController action:@selector(closeButtonPressed:)];
 	UIImage *backbuttonImage = [UIImage imageWithContentsOfFile: [bundle pathForResource:@"backbutton" ofType:@"png"]];
 	UIBarButtonItem* gobackButton = [[UIBarButtonItem alloc] initWithImage:backbuttonImage style:UIBarButtonItemStylePlain target:webBrowserViewController action:@selector(backButtonPressed:)];
 	[webBrowserViewController.navigationItem setLeftBarButtonItem:gobackButton];
-	[webBrowserViewController.navigationItem setRightBarButtonItem:refreshButton];
+	[webBrowserViewController.navigationItem setRightBarButtonItem:closeButton];
     return webBrowserViewController;
 }
 
@@ -382,6 +383,10 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
 	} else {
 		[self.navigationController popViewControllerAnimated:YES];
 	}
+}
+
+- (void)closeButtonPressed:(id)sender {
+	[self.navigationController popViewControllerAnimated:YES];
 }
 
 #pragma mark - UIBarButtonItem Target Action Methods
