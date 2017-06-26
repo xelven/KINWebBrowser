@@ -32,8 +32,6 @@
 
 #import "KINWebBrowserViewController.h"
 
-#import "TUSafariActivity.h"
-#import "ARChromeActivity.h"
 
 static void *KINWebBrowserContext = &KINWebBrowserContext;
 
@@ -56,6 +54,13 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
 
 + (KINWebBrowserViewController *)webBrowser {
     KINWebBrowserViewController *webBrowserViewController = [KINWebBrowserViewController webBrowserWithConfiguration:nil];
+
+	NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+	UIBarButtonItem* refreshButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:webBrowserViewController action:@selector(refreshButtonPressed:)];
+	UIImage *backbuttonImage = [UIImage imageWithContentsOfFile: [bundle pathForResource:@"backbutton" ofType:@"png"]];
+	UIBarButtonItem* gobackButton = [[UIBarButtonItem alloc] initWithImage:backbuttonImage style:UIBarButtonItemStylePlain target:webBrowserViewController action:@selector(backButtonPressed:)];
+	[webBrowserViewController.navigationItem setLeftBarButtonItem:gobackButton];
+	[webBrowserViewController.navigationItem setRightBarButtonItem:refreshButton];
     return webBrowserViewController;
 }
 
@@ -102,8 +107,7 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
         else {
             self.uiWebView = [[UIWebView alloc] init];
         }
-        
-        self.actionButtonHidden = NO;
+
         self.showsURLInNavigationBar = NO;
         self.showsPageTitleInNavigationBar = YES;
         
@@ -118,7 +122,7 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.previousNavigationControllerToolbarHidden = self.navigationController.toolbarHidden;
+	self.previousNavigationControllerToolbarHidden = self.navigationController.toolbarHidden;
     self.previousNavigationControllerNavigationBarHidden = self.navigationController.navigationBarHidden;
     
     if(self.wkWebView) {
@@ -155,7 +159,7 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
     [super viewWillAppear:animated];
     
     [self.navigationController setNavigationBarHidden:NO animated:YES];
-    [self.navigationController setToolbarHidden:NO animated:YES];
+    [self.navigationController setToolbarHidden:YES animated:YES];
     
     [self.navigationController.navigationBar addSubview:self.progressView];
     
@@ -215,10 +219,6 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
     [self.navigationController.toolbar setBarTintColor:barTintColor];
 }
 
-- (void)setActionButtonHidden:(BOOL)actionButtonHidden {
-    _actionButtonHidden = actionButtonHidden;
-    [self updateToolbarState];
-}
 
 
 #pragma mark - UIWebViewDelegate
@@ -347,98 +347,44 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
 #pragma mark - Toolbar State
 
 - (void)updateToolbarState {
-    
-    BOOL canGoBack = self.wkWebView.canGoBack || self.uiWebView.canGoBack;
-    BOOL canGoForward = self.wkWebView.canGoForward || self.uiWebView.canGoForward;
-    
-    [self.backButton setEnabled:canGoBack];
-    [self.forwardButton setEnabled:canGoForward];
-    
-    if(!self.backButton) {
-        [self setupToolbarItems];
-    }
-    
-    NSArray *barButtonItems;
-    if(self.wkWebView.loading || self.uiWebViewIsLoading) {
-        barButtonItems = @[self.backButton, self.fixedSeparator, self.forwardButton, self.fixedSeparator, self.stopButton, self.flexibleSeparator];
-        
-        if(self.showsURLInNavigationBar) {
-            NSString *URLString;
-            if(self.wkWebView) {
-                URLString = [self.wkWebView.URL absoluteString];
-            }
-            else if(self.uiWebView) {
-                URLString = [self.uiWebViewCurrentURL absoluteString];
-            }
-            
-            URLString = [URLString stringByReplacingOccurrencesOfString:@"http://" withString:@""];
-            URLString = [URLString stringByReplacingOccurrencesOfString:@"https://" withString:@""];
-            URLString = [URLString substringToIndex:[URLString length]-1];
-            self.navigationItem.title = URLString;
-        }
-    }
-    else {
-        barButtonItems = @[self.backButton, self.fixedSeparator, self.forwardButton, self.fixedSeparator, self.refreshButton, self.flexibleSeparator];
-        
-        if(self.showsPageTitleInNavigationBar) {
-            if(self.wkWebView) {
-                self.navigationItem.title = self.wkWebView.title;
-            }
-            else if(self.uiWebView) {
-                self.navigationItem.title = [self.uiWebView stringByEvaluatingJavaScriptFromString:@"document.title"];
-            }
-        }
-    }
-    
-    if(!self.actionButtonHidden) {
-        NSMutableArray *mutableBarButtonItems = [NSMutableArray arrayWithArray:barButtonItems];
-        [mutableBarButtonItems addObject:self.actionButton];
-        barButtonItems = [NSArray arrayWithArray:mutableBarButtonItems];
-    }
-    
-    [self setToolbarItems:barButtonItems animated:YES];
-    
-    self.tintColor = self.tintColor;
-    self.barTintColor = self.barTintColor;
-    
-    
-}
 
-- (void)setupToolbarItems {
-    NSBundle *bundle = [NSBundle bundleForClass:[KINWebBrowserViewController class]];
-    
-    self.refreshButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(refreshButtonPressed:)];
-    self.stopButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemStop target:self action:@selector(stopButtonPressed:)];
-    
-    UIImage *backbuttonImage = [UIImage imageWithContentsOfFile: [bundle pathForResource:@"backbutton" ofType:@"png"]];
-    self.backButton = [[UIBarButtonItem alloc] initWithImage:backbuttonImage style:UIBarButtonItemStylePlain target:self action:@selector(backButtonPressed:)];
-    
-    UIImage *forwardbuttonImage = [UIImage imageWithContentsOfFile: [bundle pathForResource:@"forwardbutton" ofType:@"png"]];
-    self.forwardButton = [[UIBarButtonItem alloc] initWithImage:forwardbuttonImage style:UIBarButtonItemStylePlain target:self action:@selector(forwardButtonPressed:)];
-    self.actionButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(actionButtonPressed:)];
-    self.fixedSeparator = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:nil action:nil];
-    self.fixedSeparator.width = 50.0f;
-    self.flexibleSeparator = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
 }
 
 #pragma mark - Done Button Action
 
 - (void)doneButtonPressed:(id)sender {
-    [self dismissAnimated:YES];
+	BOOL canGoBack = self.wkWebView.canGoBack || self.uiWebView.canGoBack;
+	BOOL canGoForward = self.wkWebView.canGoForward || self.uiWebView.canGoForward;
+
+	if ( canGoBack == true) {
+		if(self.wkWebView) {
+			[self.wkWebView goBack];
+		}
+		else if(self.uiWebView) {
+			[self.uiWebView goBack];
+		}
+	} else {
+		[self dismissAnimated:YES];
+	}
+}
+
+- (void)backButtonPressed:(id)sender {
+	BOOL canGoBack = self.wkWebView.canGoBack || self.uiWebView.canGoBack;
+	BOOL canGoForward = self.wkWebView.canGoForward || self.uiWebView.canGoForward;
+
+	if ( canGoBack == true) {
+		if(self.wkWebView) {
+			[self.wkWebView goBack];
+		}
+		else if(self.uiWebView) {
+			[self.uiWebView goBack];
+		}
+	} else {
+		[self.navigationController popViewControllerAnimated:YES];
+	}
 }
 
 #pragma mark - UIBarButtonItem Target Action Methods
-
-- (void)backButtonPressed:(id)sender {
-    
-    if(self.wkWebView) {
-        [self.wkWebView goBack];
-    }
-    else if(self.uiWebView) {
-        [self.uiWebView goBack];
-    }
-    [self updateToolbarState];
-}
 
 - (void)forwardButtonPressed:(id)sender {
     if(self.wkWebView) {
@@ -469,46 +415,6 @@ static void *KINWebBrowserContext = &KINWebBrowserContext;
         [self.uiWebView stopLoading];
     }
 }
-
-- (void)actionButtonPressed:(id)sender {
-    NSURL *URLForActivityItem;
-    NSString *URLTitle;
-    if(self.wkWebView) {
-        URLForActivityItem = self.wkWebView.URL;
-        URLTitle = self.wkWebView.title;
-    }
-    else if(self.uiWebView) {
-        URLForActivityItem = self.uiWebView.request.URL;
-        URLTitle = [self.uiWebView stringByEvaluatingJavaScriptFromString:@"document.title"];
-    }
-    if (URLForActivityItem) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            TUSafariActivity *safariActivity = [[TUSafariActivity alloc] init];
-            ARChromeActivity *chromeActivity = [[ARChromeActivity alloc] init];
-            
-            NSMutableArray *activities = [[NSMutableArray alloc] init];
-            [activities addObject:safariActivity];
-            [activities addObject:chromeActivity];
-            if(self.customActivityItems != nil) {
-                [activities addObjectsFromArray:self.customActivityItems];
-            }
-            
-            UIActivityViewController *controller = [[UIActivityViewController alloc] initWithActivityItems:@[URLForActivityItem] applicationActivities:activities];
-            
-            if([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-                if(self.actionPopoverController) {
-                    [self.actionPopoverController dismissPopoverAnimated:YES];
-                }
-                self.actionPopoverController = [[UIPopoverController alloc] initWithContentViewController:controller];
-                [self.actionPopoverController presentPopoverFromBarButtonItem:self.actionButton permittedArrowDirections: UIPopoverArrowDirectionAny animated:YES];
-            }
-            else {
-                [self presentViewController:controller animated:YES completion:NULL];
-            }
-        });
-    }
-}
-
 
 #pragma mark - Estimated Progress KVO (WKWebView)
 
